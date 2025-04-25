@@ -10,16 +10,19 @@ const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
 // Camera Settings
+const float radius = 3.0f;
+float camX = sin(glfwGetTime()) * radius;
+float camZ = cos(glfwGetTime()) * radius;
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
 bool firstMouse = true;
-float yaw   = -90.0f;	// yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
-float pitch =  0.0f;
-float lastX =  800.0f / 2.0;
-float lastY =  600.0 / 2.0;
-float fov   =  45.0f;
+float yaw = -90.0f; // yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
+float pitch = 0.0f;
+float lastX = 800.0f / 2.0;
+float lastY = 600.0 / 2.0;
+float fov = 45.0f;
 
 // DeltaTime variables
 float deltaTime = 0.0f; // Time between current frame and last frame
@@ -29,6 +32,7 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void processInput(GLFWwindow *wimdow);
 unsigned int loadTexture(const char *path);
 void mouse_callback(GLFWwindow *window, double xpos, double ypos);
+void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
 int main()
 {
     // Initialiase glfw
@@ -66,6 +70,7 @@ int main()
     // Set callback for window resize
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetScrollCallback(window, scroll_callback);
 
     Shader ourShader("shader.vs", "shader.fs"); // Single shader for all planets
     Sphere sun(0.3, 64, 32, true);
@@ -91,14 +96,11 @@ int main()
         lastFrame = currentFrame;
 
         // View Matrix
-        const float radius = 10.0f;
-        float camX = sin(glfwGetTime()) * radius;
-        float camZ = cos(glfwGetTime()) * radius;
         glm::mat4 view;
         view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
         // Projecttion Matrix
-        glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        glm::mat4 projection = glm::perspective(glm::radians(fov), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 
         // Draw Sun
         ourShader.use();
@@ -108,8 +110,7 @@ int main()
         ourShader.setMat4("view", view);
         ourShader.setMat4("projection", projection);
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(0.0, 0.0, -3.0f));
-        // model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.0f, 1.0f, 0.0f));
+        model = glm::translate(model, glm::vec3(0.0, 0.0, 0.0f));
         ourShader.setMat4("model", model);
         sun.draw(ourShader);
 
@@ -118,10 +119,14 @@ int main()
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, earthTexture);
         ourShader.setInt("ourTexture", 0);
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(1.0, 0.0, 1.0));
-        model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
-        ourShader.setMat4("model", model);
+        float earthRadius = 1.5f;
+        float earthOrbitSpeed = 0.5f;
+        float earthRotationSpeed = 2.0f;
+        float earthAngle = (float)glfwGetTime() * earthOrbitSpeed;
+        glm::mat4 earthmodel = glm::mat4(1.0f);
+        earthmodel = glm::translate(earthmodel, glm::vec3(sin(earthAngle) * earthRadius, 0.0f, cos(earthAngle) * earthRadius));
+        earthmodel = glm::rotate(earthmodel, (float)glfwGetTime() * earthRotationSpeed, glm::vec3(0.0, 1.0, 0.0));
+        ourShader.setMat4("model", earthmodel);
         earth.draw(ourShader);
 
         // Moon Draw
@@ -129,9 +134,12 @@ int main()
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, moonTexture);
         ourShader.setInt("ourTexture", 0);
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(-1.0, 0.0, 1.0));
-        ourShader.setMat4("model", model);
+        float moonRadius = 0.5f;
+        float moonOrbitSpeed = 2.0f;
+        float moonAngle = (float)glfwGetTime() * moonOrbitSpeed;
+        glm::mat4 moonmodel = earthmodel;
+        moonmodel = glm::translate(moonmodel, glm::vec3(sin(moonAngle) * moonRadius, 0.0, cos(moonAngle) * moonRadius));
+        ourShader.setMat4("model", moonmodel);
         moon.draw(ourShader);
 
         glfwSwapBuffers(window);
@@ -209,7 +217,7 @@ unsigned int loadTexture(const char *path)
     return texture;
 }
 
-void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
+void mouse_callback(GLFWwindow *window, double xposIn, double yposIn)
 {
     float xpos = static_cast<float>(xposIn);
     float ypos = static_cast<float>(yposIn);
@@ -248,7 +256,7 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 
 // glfw: whenever the mouse scroll wheel scrolls, this callback is called
 // ----------------------------------------------------------------------
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+void scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
 {
     fov -= (float)yoffset;
     if (fov < 1.0f)
