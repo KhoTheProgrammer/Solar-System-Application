@@ -13,6 +13,11 @@ const unsigned int SCR_HEIGHT = 600;
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+// DeltaTime variables
+float deltaTime = 0.0f; // Time between current frame and last frame
+float lastFrame = 0.0f; // Time of last frame
+
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void processInput(GLFWwindow *wimdow);
 unsigned int loadTexture(const char *path);
@@ -67,6 +72,11 @@ int main()
         // Clear buffers
         glClearColor(0.1f, 0.1f, 0.2f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // Calculate new deltaTime
+        float currentFrame = glfwGetTime();
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
 
         // View Matrix
         const float radius = 10.0f;
@@ -135,8 +145,8 @@ void processInput(GLFWwindow *window)
     }
 
     // Changing camera speed
-    const float cameraSpeed = 0.05f; // adjust accordingly
-
+    float cameraSpeed = 2.5f * deltaTime;
+    
     // Zoom in
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         cameraPos += cameraSpeed * cameraFront;
