@@ -13,7 +13,7 @@ const unsigned int SCR_HEIGHT = 600;
 const float radius = 3.0f;
 float camX = sin(glfwGetTime()) * radius;
 float camZ = cos(glfwGetTime()) * radius;
-glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -3.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
@@ -23,6 +23,8 @@ float pitch = 0.0f;
 float lastX = 800.0f / 2.0;
 float lastY = 600.0 / 2.0;
 float fov = 45.0f;
+
+float moonOrbitSpeed = 2.0f;
 
 // DeltaTime variables
 float deltaTime = 0.0f; // Time between current frame and last frame
@@ -72,13 +74,15 @@ int main()
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
 
-    Shader ourShader("shader.vs", "shader.fs"); // Single shader for all planets
-    Sphere sun(0.3, 64, 32, true);
+    Shader ourShader("shader.vs", "shader.fs");
+    Sphere sun(0.4, 64, 32, true);
     Sphere earth(0.2, 64, 32, true);
-    Sphere moon(0.1, 64, 32, true); // Smaller moon
+    Sphere moon(0.1, 64, 32, true);
+    Sphere jupiter(0.3, 64, 32, true);
     unsigned int sunTexture = loadTexture("PlanetTextureMaps/sunmap.jpg");
     unsigned int earthTexture = loadTexture("PlanetTextureMaps/earthmap1k.jpg");
     unsigned int moonTexture = loadTexture("PlanetTextureMaps/venusmap.jpg");
+    unsigned int jupiterTexture = loadTexture("PlanetTextureMaps/jupitermap.jpg");
 
     // Render loop
     while (!glfwWindowShouldClose(window))
@@ -111,6 +115,7 @@ int main()
         ourShader.setMat4("projection", projection);
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(0.0, 0.0, 0.0f));
+        model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.0, 1.0, 0.0));
         ourShader.setMat4("model", model);
         sun.draw(ourShader);
 
@@ -135,12 +140,25 @@ int main()
         glBindTexture(GL_TEXTURE_2D, moonTexture);
         ourShader.setInt("ourTexture", 0);
         float moonRadius = 0.5f;
-        float moonOrbitSpeed = 2.0f;
         float moonAngle = (float)glfwGetTime() * moonOrbitSpeed;
         glm::mat4 moonmodel = earthmodel;
         moonmodel = glm::translate(moonmodel, glm::vec3(sin(moonAngle) * moonRadius, 0.0, cos(moonAngle) * moonRadius));
         ourShader.setMat4("model", moonmodel);
         moon.draw(ourShader);
+
+         // Jupiter Draw
+         ourShader.use();
+         glActiveTexture(GL_TEXTURE0);
+         glBindTexture(GL_TEXTURE_2D, jupiterTexture);
+         ourShader.setInt("ourTexture", 0);
+         float jupiterRadius = 2.0f;
+         float jupiterRotationSpeed = 1.5f;
+         float jupiterAngle = (float)glfwGetTime() * jupiterRotationSpeed;
+         glm::mat4 jupiterModel = glm::mat4(1.0f);
+         jupiterModel = glm::translate(jupiterModel, glm::vec3(sin(jupiterAngle) * jupiterRadius, 0.0f, cos(jupiterAngle) * jupiterRadius));
+         jupiterModel = glm::rotate(jupiterModel, (float)glfwGetTime() * jupiterRotationSpeed, glm::vec3(0.0, 1.0, 0.0));
+         ourShader.setMat4("model", jupiterModel);
+         jupiter.draw(ourShader);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -184,6 +202,12 @@ void processInput(GLFWwindow *window)
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) *
                      cameraSpeed;
+
+    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+        moonOrbitSpeed -= 0.01;
+
+    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+        moonOrbitSpeed += 0.01;
 }
 
 unsigned int loadTexture(const char *path)
