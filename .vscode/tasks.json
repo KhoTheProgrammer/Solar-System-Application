@@ -11,6 +11,7 @@
                 "${workspaceFolder}/src/Sphere/Sphere.cpp",
                 "${workspaceFolder}/src/Shader/Shader.cpp",
                 "${workspaceFolder}/src/Timer/Timer.cpp",
+                "${workspaceFolder}/src/Planet/Planet.cpp",
                 "-o",
                 "${workspaceFolder}/Solar-System.exe",
                 "-I${workspaceFolder}/dependencies/include",
